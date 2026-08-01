@@ -135,6 +135,30 @@
                 </div>
             </section>
 
+            <!-- Interactive Analytics & Charts Panel -->
+            <section class="card-panel" style="margin-bottom: 25px; padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">
+                    <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>📈</span> <span>تحليلات ورسوم بيانية تفاعلية</span>
+                    </h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">مؤشرات حية</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: 14px; border: 1px solid var(--border-glass); height: 260px; display: flex; flex-direction: column;">
+                        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--text-muted); text-align: center;">توزيع الباقات الأكثر طلباً</h4>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="chartPackageDistribution"></canvas>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: 14px; border: 1px solid var(--border-glass); height: 260px; display: flex; flex-direction: column;">
+                        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--text-muted); text-align: center;">نسبة استهلاك سعة الخطوط (GB)</h4>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="chartLineUtilization"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Action Controls Panel -->
             <section class="controls-panel card-panel">
                 <div class="controls-info">
@@ -196,6 +220,8 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="assets/script.js"></script>
+    <script src="assets/charts.js"></script>
 </body>
 </html>

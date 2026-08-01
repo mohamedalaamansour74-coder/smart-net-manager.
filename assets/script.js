@@ -4425,8 +4425,19 @@ function buildWhatsAppReminderUrl(phone, clientName, packageName, totalPrice, pa
                 <td style="padding: 16px 20px;">
                     ${badgeHtml}
                 </td>
-                <td style="padding: 16px 20px; text-align: center; white-space: nowrap; display: flex; gap: 8px; justify-content: center; align-items: center;">
+                <td style="padding: 16px 20px; text-align: center; white-space: nowrap; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
                     ${payFullBtnHtml}
+                    <button type="button" class="btn btn-secondary btn-sm btn-open-invoice"
+                        data-id="${item.id}"
+                        data-phone="${item.phone}"
+                        data-client-name="${item.client_name || ''}"
+                        data-package="${item.package_gigas}"
+                        data-total-price="${item.total_price}"
+                        data-paid-amount="${item.paid_amount}"
+                        style="padding: 6px 12px; font-size: 0.82rem; font-weight: 700; color: #818cf8; border-color: rgba(129, 140, 248, 0.4);"
+                        title="عرض الفاتورة والـ QR Code">
+                        🧾 الفاتورة
+                    </button>
                     <button type="button" class="btn btn-secondary btn-sm btn-edit-payment" 
                         data-id="${item.id}"
                         data-phone="${item.phone}"
@@ -4434,7 +4445,15 @@ function buildWhatsAppReminderUrl(phone, clientName, packageName, totalPrice, pa
                         data-total-price="${item.total_price}"
                         data-paid-amount="${item.paid_amount}"
                         style="padding: 6px 12px; font-size: 0.82rem; font-weight: 600;">
-                        💳 تعديل الدفع
+                        💳 تعديل
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm btn-renew-customer" 
+                        data-id="${item.id}"
+                        data-phone="${item.phone}"
+                        data-client-name="${item.client_name || ''}"
+                        style="padding: 6px 12px; font-size: 0.82rem; font-weight: 700; color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);"
+                        title="تجديد الاشتراك لشهر جديد بنقرة واحدة">
+                        ⚡ تجديد
                     </button>
                     <button type="button" class="btn btn-danger btn-sm delete-customer-btn" 
                         data-id="${item.id}"
@@ -5211,6 +5230,215 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// -------------------------------------------------------------
+// SYSTEM AUDIT LOGGER & ACTIVITY STREAM ENGINE
+// -------------------------------------------------------------
+function logActivity(action, details = '') {
+    const logsKey = getWorkspaceKey('activity_logs');
+    let logs = [];
+    try {
+        logs = JSON.parse(localStorage.getItem(logsKey) || '[]');
+    } catch(e) { logs = []; }
+
+    const currentUser = getCurrentUser();
+    const newLog = {
+        id: `log_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        date: new Date().toLocaleString('ar-EG'),
+        timestamp: new Date().toISOString(),
+        username: currentUser ? currentUser.username : 'admin',
+        role: currentUser ? currentUser.role : 'master',
+        action: action,
+        details: details,
+        device: typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.includes('Mobile') ? '📱 Mobile' : '💻 Desktop',
+        ip: 'Local Workstation'
+    };
+
+    logs.unshift(newLog);
+    if (logs.length > 200) logs.pop();
+
+    localStorage.setItem(logsKey, JSON.stringify(logs));
+    saveToFirestore(logsKey, logs);
+
+    if (db) {
+        try {
+            db.collection('activity_logs').doc(newLog.id).set(newLog, { merge: true })
+              .catch(err => console.error('Firestore log error:', err));
+        } catch(e) {}
+    }
+}
+
+// Render Activity Logs Table in Admin Page
+function renderActivityLogsTable() {
+    const tbody = document.getElementById('activityLogsTbody');
+    const kpiLogsCount = document.getElementById('kpiTotalLogsCount');
+    if (!tbody) return;
+
+    const logsKey = getWorkspaceKey('activity_logs');
+    let logs = [];
+    try {
+        logs = JSON.parse(localStorage.getItem(logsKey) || '[]');
+    } catch(e) { logs = []; }
+
+    if (kpiLogsCount) kpiLogsCount.textContent = logs.length;
+
+    if (logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد سجلات نشاطات مسجلة حالياً.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = logs.slice(0, 50).map(log => `
+        <tr style="border-bottom: 1px solid var(--border-glass);">
+            <td style="padding: 12px 16px; font-size: 0.8rem; font-family: monospace; color: var(--text-muted);">${log.date || ''}</td>
+            <td style="padding: 12px 16px; font-weight: 700; color: var(--color-primary);">${escapeHtml(log.username)} (${log.role || 'user'})</td>
+            <td style="padding: 12px 16px; font-size: 0.85rem;">${escapeHtml(log.action)}</td>
+            <td style="padding: 12px 16px; font-size: 0.82rem; color: var(--text-muted);">${escapeHtml(log.details || '-')}</td>
+            <td style="padding: 12px 16px; font-size: 0.8rem;">${log.device || ''}</td>
+            <td style="padding: 12px 16px; text-align: center;"><span style="color: #34d399; font-weight: 700; font-size: 0.75rem; background: rgba(52, 211, 153, 0.1); padding: 2px 8px; border-radius: 6px;">✓ ناجحة</span></td>
+        </tr>
+    `).join('');
+}
+
+// -------------------------------------------------------------
+// INVOICE & QR CODE & THERMAL PRINT HANDLERS
+// -------------------------------------------------------------
+document.addEventListener('click', (e) => {
+    const invBtn = e.target.closest('.btn-open-invoice');
+    if (invBtn) {
+        const phone = invBtn.getAttribute('data-phone') || 'بدون رقم';
+        const clientName = invBtn.getAttribute('data-client-name') || getCustomerName(phone) || 'عميل محترم';
+        const pkgGigas = invBtn.getAttribute('data-package') || '30';
+        const totalPrice = parseInt(invBtn.getAttribute('data-total-price') || '0', 10);
+        const paidAmount = parseInt(invBtn.getAttribute('data-paid-amount') || '0', 10);
+        const remaining = Math.max(0, totalPrice - paidAmount);
+
+        const modal = document.getElementById('invoiceModal');
+        if (modal) {
+            document.getElementById('invClientName').textContent = clientName;
+            document.getElementById('invClientPhone').textContent = phone;
+            document.getElementById('invPackageGigas').textContent = `${pkgGigas} GB`;
+            document.getElementById('invTotalPrice').textContent = `${totalPrice.toLocaleString()} EGP`;
+            document.getElementById('invPaidAmount').textContent = `${paidAmount.toLocaleString()} EGP`;
+            document.getElementById('invRemainingAmount').textContent = `${remaining.toLocaleString()} EGP`;
+            document.getElementById('invDate').textContent = new Date().toLocaleDateString('ar-EG');
+
+            // Generate QR Code
+            const qrCanvas = document.getElementById('qrcodeCanvas');
+            if (qrCanvas) {
+                qrCanvas.innerHTML = '';
+                const qrText = `SmartNet Invoice: ${clientName} | Phone: ${phone} | Pkg: ${pkgGigas}GB | Total: ${totalPrice}EGP | Paid: ${paidAmount}EGP | Rem: ${remaining}EGP`;
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(qrCanvas, {
+                        text: qrText,
+                        width: 110,
+                        height: 110,
+                        colorDark: "#1e1b4b",
+                        colorLight: "#ffffff"
+                    });
+                }
+            }
+
+            modal.style.display = 'flex';
+            logActivity('عرض فاتورة', `عرض فاتورة للعميل ${clientName} (${phone})`);
+        }
+    }
+
+    if (e.target && (e.target.id === 'btnCloseInvoiceModal' || e.target.id === 'btnCloseInvoiceModal2')) {
+        const modal = document.getElementById('invoiceModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    if (e.target && e.target.id === 'btnPrintInvoice') {
+        window.print();
+        logActivity('طباعة فاتورة حرارية', 'تم تشغيل أمر طباعة الفاتورة');
+    }
+});
+
+// -------------------------------------------------------------
+// ONE-CLICK AUTO-RENEWAL HANDLER
+// -------------------------------------------------------------
+document.addEventListener('click', (e) => {
+    const renewBtn = e.target.closest('.btn-renew-customer');
+    if (renewBtn) {
+        const id = renewBtn.getAttribute('data-id');
+        const phone = renewBtn.getAttribute('data-phone');
+        const clientName = renewBtn.getAttribute('data-client-name') || getCustomerName(phone) || phone;
+
+        if (confirm(`هل أنت تأكد من تجديد اشتراك العميل (${clientName}) لشهر جديد وتصفير المدفوعات للبدء مجدداً؟`)) {
+            const records = getPaymentsRecords();
+            if (records[id]) {
+                records[id].paid_amount = 0;
+                records[id].remaining_amount = records[id].total_price;
+                records[id].status = 'unpaid';
+                records[id].updated_at = new Date().toISOString();
+                if (phone && records[phone]) {
+                    records[phone] = { ...records[id] };
+                }
+                savePaymentsRecords(records);
+            }
+
+            logActivity('تجديد اشتراك تلقائي', `تجديد اشتراك العميل ${clientName} (${phone}) لشهر جديد`);
+            alert(`⚡ تم تجديد اشتراك العميل (${clientName}) بنجاح لشهر جديد!`);
+            renderPaymentsPage();
+        }
+    }
+});
+
+// -------------------------------------------------------------
+// BULK WHATSAPP DISPATCHER MODAL HANDLERS
+// -------------------------------------------------------------
+document.addEventListener('click', (e) => {
+    if (e.target && (e.target.id === 'btnOpenBulkWhatsappModal' || e.target.closest('#btnOpenBulkWhatsappModal'))) {
+        const modal = document.getElementById('bulkWhatsappModal');
+        const container = document.getElementById('bulkWhatsappContainer');
+        if (!modal || !container) return;
+
+        const allItems = getAllPaymentItems();
+        const unpaidItems = allItems.filter(i => i.remaining_amount > 0 && i.phone && i.phone !== 'بدون رقم');
+
+        if (unpaidItems.length === 0) {
+            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 30px;">✅ جميع العملاء مسددون بالكامل! لا توجد مستحقات معلقة حالياً.</div>`;
+        } else {
+            container.innerHTML = unpaidItems.map(item => {
+                const url = buildWhatsAppReminderUrl(item.phone, item.client_name, `${item.package_gigas} GB`, item.total_price, item.paid_amount, item.remaining_amount);
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-glass);">
+                        <div>
+                            <strong style="font-size: 0.95rem; color: var(--text-main); font-family: monospace;">${item.phone}</strong>
+                            <span style="font-size: 0.8rem; color: #a78bfa; display: block;">${escapeHtml(item.client_name || 'عميل')} - متبقي: ${item.remaining_amount.toLocaleString()} EGP</span>
+                        </div>
+                        <a href="${url}" target="_blank" class="btn btn-primary btn-sm" style="background: #25D366; color: white; border: none; font-weight: 700; text-decoration: none; padding: 8px 16px; border-radius: 8px;">
+                            💬 إرسال تذكير
+                        </a>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        modal.style.display = 'flex';
+        logActivity('فتح مركز التذكير الجماعي', `استعراض ${unpaidItems.length} عميل متبقي عليهم مستحقات`);
+    }
+
+    if (e.target && e.target.id === 'btnCloseBulkWhatsappModal') {
+        const modal = document.getElementById('bulkWhatsappModal');
+        if (modal) modal.style.display = 'none';
+    }
+});
+
+// -------------------------------------------------------------
+// PWA SERVICE WORKER AUTO-REGISTRATION
+// -------------------------------------------------------------
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+            .catch(err => console.warn('Service Worker registration notice:', err));
+    });
+}
+
 // Auto-initialize page components on page load
 function initActivePage() {
     if (document.getElementById('kpiTotalLines') || document.getElementById('dashboardLinesGrid') || document.getElementById('overallPercentage')) {
@@ -5227,6 +5455,7 @@ function initActivePage() {
     }
     if (typeof renderAdminPage === 'function' && (document.getElementById('usersDirectoryTbody') || document.getElementById('activityLogsTbody') || document.getElementById('adminAccessDeniedContainer'))) {
         renderAdminPage();
+        renderActivityLogsTable();
     }
     if (typeof renderBillsPage === 'function' && (document.getElementById('standaloneLinesBillsContainer') || document.getElementById('inputOutsideExpensesPage'))) {
         renderBillsPage();
@@ -5238,4 +5467,5 @@ if (document.readyState === 'loading') {
 } else {
     initActivePage();
 }
+
 
