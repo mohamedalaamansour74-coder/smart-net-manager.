@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <script>
         // Inline authentication guard
@@ -13,13 +14,14 @@
     <link rel="stylesheet" href="assets/style.css">
     <script>
         // Immediately enforce active language settings to prevent browser flicker
-        (function() {
+        (function () {
             const storedLang = localStorage.getItem('selected_lang') || localStorage.getItem('lang') || 'en';
             document.documentElement.dir = storedLang === 'ar' ? 'rtl' : 'ltr';
             document.documentElement.lang = storedLang;
         })();
     </script>
 </head>
+
 <body class="dashboard-page">
     <script>
         // Enforce light/dark mode preference immediately on body parsing
@@ -57,7 +59,8 @@
                 <a href="admin.html" class="nav-item" id="navAdmin">
                     <span class="nav-icon">🛡️</span> <span>صفحة الإدارة</span>
                 </a>
-                <a href="#" class="nav-item" id="navLogout" style="margin-top: auto; border-top: 1px solid var(--border-glass); padding-top: 15px; color: var(--color-danger);">
+                <a href="#" class="nav-item" id="navLogout"
+                    style="margin-top: auto; border-top: 1px solid var(--border-glass); padding-top: 15px; color: var(--color-danger);">
                     <span class="nav-icon">🚪</span> <span data-i18n="navLogout">Logout</span>
                 </a>
             </nav>
@@ -71,16 +74,21 @@
         <main class="main-content">
             <header class="page-header">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button id="mobileMenuToggle" class="btn btn-secondary btn-sm" style="display: none; padding: 10px 14px; font-size: 1.25rem; line-height: 1;" title="Toggle Navigation">☰</button>
+                    <button id="mobileMenuToggle" class="btn btn-secondary btn-sm"
+                        style="display: none; padding: 10px 14px; font-size: 1.25rem; line-height: 1;"
+                        title="Toggle Navigation">☰</button>
                     <div class="page-title">
                         <h1 data-i18n="dashboardTitle">System Dashboard</h1>
-                        <p data-i18n="dashboardSubtitle">Observe capacities, revenue streams, and run Smart Allocation solvers.</p>
+                        <p data-i18n="dashboardSubtitle">Observe capacities, revenue streams, and run Smart Allocation
+                            solvers.</p>
                     </div>
                 </div>
                 <!-- Header Toolbar (Language & Theme toggle controls) -->
                 <div class="header-controls" style="display: flex; gap: 12px; align-items: center;">
-                    <button class="btn btn-secondary btn-sm" id="langToggle" title="Switch Language" style="padding: 10px 16px; font-size: 0.85rem;">🌐 AR</button>
-                    <button class="btn btn-secondary btn-sm" id="themeToggle" title="Toggle Theme" style="padding: 10px 16px; font-size: 0.85rem;">🌙</button>
+                    <button class="btn btn-secondary btn-sm" id="langToggle" title="Switch Language"
+                        style="padding: 10px 16px; font-size: 0.85rem;">🌐 AR</button>
+                    <button class="btn btn-secondary btn-sm" id="themeToggle" title="Toggle Theme"
+                        style="padding: 10px 16px; font-size: 0.85rem;">🌙</button>
                 </div>
             </header>
 
@@ -100,8 +108,9 @@
                     <div class="kpi-info">
                         <h3 data-i18n="fullLines">Full Lines</h3>
                         <div class="kpi-value">
-                            <span id="kpiFullLinesCount">0</span> 
-                            <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);" id="kpiFullLinesTotal">/ 0</span>
+                            <span id="kpiFullLinesCount">0</span>
+                            <span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);"
+                                id="kpiFullLinesTotal">/ 0</span>
                         </div>
                         <div class="kpi-trend" data-i18n="operatingLimits">
                             Lines operating at maximum limits
@@ -115,19 +124,23 @@
                         <h3 data-i18n="pendingPool">Pending Pool</h3>
                         <div class="kpi-value"><span id="kpiPendingCount">0</span></div>
                         <div class="kpi-trend">
-                            <span data-i18n="accumulatedVolume">Accumulated reservation volume:</span> <strong id="kpiPendingVolume">0 GB</strong>
+                            <span data-i18n="accumulatedVolume">Accumulated reservation volume:</span> <strong
+                                id="kpiPendingVolume">0 GB</strong>
                         </div>
                     </div>
                 </div>
 
                 <!-- Monthly Archives Panel -->
-                <div class="kpi-card accent-purple" style="display: flex; flex-direction: column; justify-content: space-between; padding: 20px;">
+                <div class="kpi-card accent-purple"
+                    style="display: flex; flex-direction: column; justify-content: space-between; padding: 20px;">
                     <div class="kpi-icon">📁</div>
                     <div class="kpi-info" style="width: 100%;">
                         <h3 data-i18n="monthlyArchivesTitle">Monthly Archives</h3>
-                        <div class="kpi-value" id="kpiArchivesCount" style="font-size: 1.8rem; font-weight: 700; margin-top: 4px;">0</div>
+                        <div class="kpi-value" id="kpiArchivesCount"
+                            style="font-size: 1.8rem; font-weight: 700; margin-top: 4px;">0</div>
                         <div style="margin-top: 15px;">
-                            <a href="archives.html" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem; padding: 12px; border-radius: 10px; width: 100%;">
+                            <a href="archives.html" class="btn btn-secondary btn-sm"
+                                style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem; padding: 12px; border-radius: 10px; width: 100%;">
                                 📂 <span data-i18n="btnManageArchives">Manage Archives</span>
                             </a>
                         </div>
@@ -135,20 +148,56 @@
                 </div>
             </section>
 
+            <!-- Interactive Analytics & Charts Panel -->
+            <section class="card-panel" style="margin-bottom: 25px; padding: 22px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">
+                    <h2
+                        style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>📈</span> <span>تحليلات ورسوم بيانية تفاعلية</span>
+                    </h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">مؤشرات حية</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                    <div
+                        style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: 14px; border: 1px solid var(--border-glass); height: 260px; display: flex; flex-direction: column;">
+                        <h4
+                            style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--text-muted); text-align: center;">
+                            توزيع الباقات الأكثر طلباً</h4>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="chartPackageDistribution"></canvas>
+                        </div>
+                    </div>
+                    <div
+                        style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: 14px; border: 1px solid var(--border-glass); height: 260px; display: flex; flex-direction: column;">
+                        <h4
+                            style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--text-muted); text-align: center;">
+                            نسبة استهلاك سعة الخطوط (GB)</h4>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="chartLineUtilization"></canvas>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Action Controls Panel -->
             <section class="controls-panel card-panel">
                 <div class="controls-info">
                     <h2 data-i18n="operationsTitle">Allocation Operations</h2>
-                    <p data-i18n="operationsSubtitle">Run the optimization algorithm to bind all pending bookings or wipe allocated data for a new month.</p>
+                    <p data-i18n="operationsSubtitle">Run the optimization algorithm to bind all pending bookings or
+                        wipe allocated data for a new month.</p>
                 </div>
                 <div class="controls-actions">
-                    <button class="btn btn-primary" id="btnTriggerAllocation" data-i18n="triggerBtn">⚡ بدء التوزيع الذكي</button>
-                    <button class="btn btn-secondary" id="btnManualAllocation" data-i18n="manualAllocationBtn">🖐️ توزيع يدوي</button>
+                    <button class="btn btn-primary" id="btnTriggerAllocation" data-i18n="triggerBtn">⚡ بدء التوزيع
+                        الذكي</button>
+                    <button class="btn btn-secondary" id="btnManualAllocation" data-i18n="manualAllocationBtn">🖐️ توزيع
+                        يدوي</button>
                     <button class="btn btn-warning" id="btnStartNewMonth">🧹 بدء شهر جديد</button>
-                    <button class="btn btn-danger" id="btnResetData" data-i18n="resetBtn">🗑️ مسح وإعادة تعيين التوزيعات</button>
-                    <button class="btn btn-danger" id="btnDeleteAllBookings" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border: 1px solid #ef4444; font-weight: 700; box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);">🔥 حذف كل الحجوزات</button>
+                    <button class="btn btn-danger" id="btnResetData" data-i18n="resetBtn">🗑️ مسح وإعادة تعيين
+                        التوزيعات</button>
+                    <button class="btn btn-danger" id="btnDeleteAllBookings"
+                        style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border: 1px solid #ef4444; font-weight: 700; box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);">🔥
+                        حذف كل الحجوزات</button>
                 </div>
             </section>
 
@@ -162,14 +211,20 @@
             </div>
 
             <!-- Waiting List / Unassigned Bookings Section (Grouped layout) -->
-            <section class="section-header" style="margin-top: 40px; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
-                <h2 data-i18n="waitingListTitle" style="font-size: 1.2rem; font-weight: 700; margin: 0;">Waiting List / Unassigned Bookings</h2>
-                <button class="btn btn-secondary btn-sm" id="btnCopyWaitingList" style="font-size: 0.85rem; padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px;" data-i18n="copyWaitingListBtn">📋 Copy Waiting List</button>
+            <section class="section-header"
+                style="margin-top: 40px; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <h2 data-i18n="waitingListTitle" style="font-size: 1.2rem; font-weight: 700; margin: 0;">Waiting List /
+                    Unassigned Bookings</h2>
+                <button class="btn btn-secondary btn-sm" id="btnCopyWaitingList"
+                    style="font-size: 0.85rem; padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px;"
+                    data-i18n="copyWaitingListBtn">📋 Copy Waiting List</button>
             </section>
 
             <!-- Dynamic Calculator Banner for Waiting List -->
-            <div id="waitingCalculatorBanner" class="card-panel" style="margin-bottom: 20px; padding: 20px; border-left: 4px solid var(--color-primary); background: rgba(99, 102, 241, 0.05);">
-                <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); text-align: center;" id="waitingCalcSummary">
+            <div id="waitingCalculatorBanner" class="card-panel"
+                style="margin-bottom: 20px; padding: 20px; border-left: 4px solid var(--color-primary); background: rgba(99, 102, 241, 0.05);">
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); text-align: center;"
+                    id="waitingCalcSummary">
                     📊 إجمالي حساب باقات الانتظار: <span id="waitingCalcGrandTotal">0</span> جنيه مصري
                 </div>
             </div>
@@ -187,17 +242,26 @@
 
     <!-- Manual Allocation Modal Interface -->
     <div id="manualAllocationModal" class="modal-overlay" style="display: none;">
-        <div class="card-panel" style="max-width: 740px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: var(--shadow-card); border-top: 4px solid var(--color-primary);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); padding-bottom: 15px; margin-bottom: 20px;">
-                <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);" data-i18n="manualModalTitle">🖐️ التوزيع اليدوي للحجوزات المعلقة (Manual Allocation)</h3>
-                <button id="btnCloseManualModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px; cursor: pointer;" title="Close">✖</button>
+        <div class="card-panel"
+            style="max-width: 740px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: var(--shadow-card); border-top: 4px solid var(--color-primary);">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); padding-bottom: 15px; margin-bottom: 20px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);"
+                    data-i18n="manualModalTitle">🖐️ التوزيع اليدوي للحجوزات المعلقة (Manual Allocation)</h3>
+                <button id="btnCloseManualModal" class="btn btn-secondary btn-sm"
+                    style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px; cursor: pointer;"
+                    title="Close">✖</button>
             </div>
-            <div id="manualModalBody" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding-right: 5px;">
+            <div id="manualModalBody"
+                style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding-right: 5px;">
                 <!-- Injected via script.js -->
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="assets/script.js"></script>
+    <script src="assets/charts.js"></script>
 </body>
+
 </html>

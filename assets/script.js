@@ -226,55 +226,53 @@ function initFirebase() {
 
 function setupFirestoreListeners() {
     if (!db) return;
-    const keys = ["lines_data", "waiting_list", "chat_history", "archived_months", "package_pricing", "payments_records", "customers_db", "admin_bills_data", "system_users", "pricing_plans"];
-    keys.forEach(key => {
+    const user = getCurrentUser();
+    const isMaster = isMasterAdmin();
+    const firestoreCol = isMaster ? "smart_net_manager" : `workspace_${user.username || user.id}`;
+    
+    const keys = ["lines_data", "waiting_list", "chat_history", "archived_months", "package_pricing", "sub_user_pricing", "payments_records", "customers_db", "admin_bills_data", "system_users", "pricing_plans"];
+    keys.forEach(rawKey => {
         try {
-            db.collection("smart_net_manager").doc(key).onSnapshot((doc) => {
+            db.collection(firestoreCol).doc(rawKey).onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    const isValidData = data && data.value !== undefined && (
-                        Array.isArray(data.value) ? data.value.length > 0 : (typeof data.value === 'object' && data.value !== null && Object.keys(data.value).length > 0)
-                    );
+                    const isValidData = data && data.value !== undefined;
                     if (isValidData) {
-                        const localStr = localStorage.getItem(key);
+                        const localKey = getWorkspaceKey(rawKey);
+                        const localStr = localStorage.getItem(localKey);
                         const dbStr = JSON.stringify(data.value);
                         if (localStr !== dbStr) {
-                            localStorage.setItem(key, dbStr);
-                            console.log(`Real-time sync: updated ${key} from Firestore.`);
+                            localStorage.setItem(localKey, dbStr);
+                            console.log(`Real-time sync: updated ${localKey} from Firestore collection [${firestoreCol}].`);
                             refreshActiveView();
                         }
                     }
-                } else {
-                    const localVal = localStorage.getItem(key);
-                    if (localVal) {
-                        try {
-                            db.collection("smart_net_manager").doc(key).set({ value: JSON.parse(localVal) })
-                              .then(() => console.log(`Migrated local ${key} to Firestore successfully.`))
-                              .catch(err => console.error(`Error migrating ${key} to Firestore:`, err));
-                        } catch(e) {}
-                    }
                 }
             }, err => {
-                console.error(`Firestore listener error for ${key}:`, err.message);
+                console.error(`Firestore listener error for ${rawKey}:`, err.message);
             });
         } catch(e) {
             console.error("Firestore collection listener error:", e);
         }
     });
 
-    // Real-time snapshot listeners on root Firestore collections
+    // Real-time snapshot listeners on sub-user isolated collections
     try {
-        db.collection("lines").onSnapshot(snapshot => {
+        const colLines = isMaster ? "lines" : `workspace_${user.username || user.id}_lines`;
+        const colBookings = isMaster ? "bookings" : `workspace_${user.username || user.id}_bookings`;
+        const colPayments = isMaster ? "payments" : `workspace_${user.username || user.id}_payments`;
+
+        db.collection(colLines).onSnapshot(snapshot => {
             const linesList = [];
             snapshot.forEach(doc => linesList.push(doc.data()));
-            if (linesList.length > 0) {
+            if (linesList.length >= 0) {
                 const keyLines = getWorkspaceKey('lines_data');
                 localStorage.setItem(keyLines, JSON.stringify(linesList));
                 refreshActiveView();
             }
-        }, err => console.error("Firestore 'lines' snapshot error:", err));
+        }, err => console.error(`Firestore '${colLines}' snapshot error:`, err));
 
-        db.collection("bookings").onSnapshot(snapshot => {
+        db.collection(colBookings).onSnapshot(snapshot => {
             const bookingsList = [];
             snapshot.forEach(doc => bookingsList.push(doc.data()));
             if (bookingsList.length >= 0) {
@@ -282,17 +280,17 @@ function setupFirestoreListeners() {
                 localStorage.setItem(keyWaiting, JSON.stringify(bookingsList));
                 refreshActiveView();
             }
-        }, err => console.error("Firestore 'bookings' snapshot error:", err));
+        }, err => console.error(`Firestore '${colBookings}' snapshot error:`, err));
 
-        db.collection("payments").onSnapshot(snapshot => {
+        db.collection(colPayments).onSnapshot(snapshot => {
             const paymentsObj = {};
             snapshot.forEach(doc => paymentsObj[doc.id] = doc.data());
-            if (Object.keys(paymentsObj).length > 0) {
+            if (Object.keys(paymentsObj).length >= 0) {
                 const keyPay = getWorkspaceKey('payments_records');
                 localStorage.setItem(keyPay, JSON.stringify(paymentsObj));
                 refreshActiveView();
             }
-        }, err => console.error("Firestore 'payments' snapshot error:", err));
+        }, err => console.error(`Firestore '${colPayments}' snapshot error:`, err));
     } catch(e) {
         console.error("Firestore direct collections listeners setup error:", e);
     }
@@ -303,10 +301,15 @@ function saveToFirestore(key, value) {
         console.warn(`saveToFirestore warning: Firestore 'db' is not initialized when saving '${key}'.`);
         return;
     }
+    const user = getCurrentUser();
+    const isMaster = isMasterAdmin();
+    const firestoreCol = isMaster ? "smart_net_manager" : `workspace_${user.username || user.id}`;
+    const docKey = key.startsWith('workspace_') ? key.replace(/^workspace_[^_]+_/, '') : key;
+
     try {
-        db.collection("smart_net_manager").doc(key).set({ value: value })
-          .then(() => console.log(`Saved ${key} to Firestore successfully.`))
-          .catch(err => console.error(`Failed to save ${key} to Firestore:`, err));
+        db.collection(firestoreCol).doc(docKey).set({ value: value })
+          .then(() => console.log(`Saved ${docKey} to Firestore collection [${firestoreCol}] successfully.`))
+          .catch(err => console.error(`Failed to save ${docKey} to Firestore:`, err));
     } catch(e) {
         console.error("Firestore save error:", e);
     }
@@ -598,27 +601,27 @@ function getWorkspaceKey(key) {
 }
 
 function initLocalStorage() {
+    const isMaster = isMasterAdmin();
     const keyLines = getWorkspaceKey('lines_data');
     const keyWaiting = getWorkspaceKey('waiting_list');
     const keyChat = getWorkspaceKey('chat_history');
     const keyArchived = getWorkspaceKey('archived_months');
 
     let linesStr = localStorage.getItem(keyLines);
-    let parsedLines = null;
-    try {
-        if (linesStr) parsedLines = JSON.parse(linesStr);
-    } catch(e) { parsedLines = null; }
-
-    if (!Array.isArray(parsedLines) || parsedLines.length === 0) {
-        localStorage.setItem(keyLines, JSON.stringify(getDefaultLines()));
+    if (linesStr === null) {
+        if (isMaster) {
+            localStorage.setItem(keyLines, JSON.stringify(getDefaultLines()));
+        } else {
+            localStorage.setItem(keyLines, JSON.stringify([]));
+        }
     }
-    if (!localStorage.getItem(keyWaiting)) {
+    if (localStorage.getItem(keyWaiting) === null) {
         localStorage.setItem(keyWaiting, JSON.stringify([]));
     }
-    if (!localStorage.getItem(keyChat)) {
+    if (localStorage.getItem(keyChat) === null) {
         localStorage.setItem(keyChat, JSON.stringify([]));
     }
-    if (!localStorage.getItem(keyArchived)) {
+    if (localStorage.getItem(keyArchived) === null) {
         localStorage.setItem(keyArchived, JSON.stringify([]));
     }
     getPricing();
@@ -3971,7 +3974,13 @@ function getSubUserPricing() {
         const stored = localStorage.getItem(key);
         if (stored) return JSON.parse(stored);
     } catch(e) {}
-    return { ...PAYMENTS_OFFICIAL_PRICING_MAP };
+
+    // Master admin gets official default pricing if not set
+    if (isMasterAdmin()) {
+        return { ...PAYMENTS_OFFICIAL_PRICING_MAP };
+    }
+    // Sub-users start completely empty
+    return {};
 }
 
 function saveSubUserPricing(pricingMap) {
@@ -3990,10 +3999,10 @@ function getPaymentDefaultPrice(gbVal) {
     const gbKey = `GB ${num}`;
 
     if (!isNaN(num)) {
-        if (subPricing && subPricing[gbKey] !== undefined) return subPricing[gbKey];
-        if (subPricing && subPricing[num] !== undefined) return subPricing[num];
-        if (systemPricing && systemPricing[num] !== undefined) return systemPricing[num];
-        if (PAYMENTS_OFFICIAL_PRICING_MAP[gbKey] !== undefined) return PAYMENTS_OFFICIAL_PRICING_MAP[gbKey];
+        if (subPricing && subPricing[gbKey] !== undefined && subPricing[gbKey] !== "") return parseInt(subPricing[gbKey], 10);
+        if (subPricing && subPricing[num] !== undefined && subPricing[num] !== "") return parseInt(subPricing[num], 10);
+        if (systemPricing && systemPricing[num] !== undefined && systemPricing[num] !== "") return parseInt(systemPricing[num], 10);
+        if (isMasterAdmin() && PAYMENTS_OFFICIAL_PRICING_MAP[gbKey] !== undefined) return PAYMENTS_OFFICIAL_PRICING_MAP[gbKey];
     }
     return 0;
 }
@@ -4787,15 +4796,18 @@ function openSellingPricesModal() {
     if (!modal) return;
 
     const subPricing = getSubUserPricing() || {};
+    const isMaster = isMasterAdmin();
 
     if (container) {
         container.innerHTML = ALL_PACKAGE_TIERS.map(tier => {
             const gbKey = tier.gb;
-            const currentVal = subPricing[gbKey] !== undefined ? subPricing[gbKey] : (PAYMENTS_OFFICIAL_PRICING_MAP[gbKey] || tier.defaultPrice);
+            const currentVal = subPricing[gbKey] !== undefined 
+                ? subPricing[gbKey] 
+                : (isMaster ? (PAYMENTS_OFFICIAL_PRICING_MAP[gbKey] || tier.defaultPrice) : "");
             return `
                 <div class="form-group" style="margin-bottom: 0;">
                     <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted);">باقة ${gbKey} (سعر البيع - جنيه):</label>
-                    <input type="number" min="0" class="form-control input-tier-price" data-gb="${gbKey}" value="${currentVal}" placeholder="أدخل السعر" style="height: 42px; font-weight: 700; font-variant-numeric: tabular-nums;">
+                    <input type="number" min="0" class="form-control input-tier-price" data-gb="${gbKey}" value="${currentVal}" placeholder="أدخل سعر البيع" style="height: 42px; font-weight: 700; font-variant-numeric: tabular-nums;">
                 </div>
             `;
         }).join('');
