@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Inline authentication guard
+        if (localStorage.getItem('admin_logged_in') !== 'true') {
+            window.location.replace('login.html');
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Net Manager - Archives Management</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script>
+        // Immediately enforce active language settings to prevent browser flicker
+        (function() {
+            const storedLang = localStorage.getItem('selected_lang') || localStorage.getItem('lang') || 'en';
+            document.documentElement.dir = storedLang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.lang = storedLang;
+        })();
+    </script>
+</head>
+<body>
+    <script>
+        // Enforce light/dark mode preference immediately on body parsing
+        const storedTheme = localStorage.getItem('theme') || 'dark';
+        if (storedTheme === 'light') {
+            document.body.classList.add('light-mode');
+        }
+    </script>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">⚡</div>
+                <h2>SmartNet Manager</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <span class="nav-icon">📊</span> <span data-i18n="navDashboard">Dashboard</span>
+                </a>
+                <a href="chat.html" class="nav-item">
+                    <span class="nav-icon">💬</span> <span data-i18n="navChat">Booking Chat</span>
+                </a>
+                <a href="reserved-bundles.html" class="nav-item" id="navReserved">
+                    <span class="nav-icon">📦</span> <span data-i18n="navReserved">Reserved Bundles</span>
+                </a>
+                <a href="lines.html" class="nav-item">
+                    <span class="nav-icon">📶</span> <span data-i18n="navLines">Lines Directory</span>
+                </a>
+                <a href="search.html" class="nav-item">
+                    <span class="nav-icon">🔍</span> <span data-i18n="navSearch">Operations & Query</span>
+                </a>
+                <a href="#" class="nav-item" id="navLogout" style="margin-top: auto; border-top: 1px solid var(--border-glass); padding-top: 15px; color: var(--color-danger);">
+                    <span class="nav-icon">🚪</span> <span data-i18n="navLogout">Logout</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <span>Enterprise Edition</span>
+                <span>v1.0</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="page-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button id="mobileMenuToggle" class="btn btn-secondary btn-sm" style="display: none; padding: 10px 14px; font-size: 1.25rem; line-height: 1;" title="Toggle Navigation">☰</button>
+                    <div class="page-title">
+                        <h1 data-i18n="archivesTitle">Monthly Archives</h1>
+                        <p data-i18n="archivesSubtitle">Download past months in Excel/Text layouts or delete obsolete logs from the server.</p>
+                    </div>
+                </div>
+                <!-- Header Toolbar (Language & Theme toggle controls) -->
+                <div class="header-controls" style="display: flex; gap: 12px; align-items: center;">
+                    <button class="btn btn-secondary btn-sm" id="langToggle" title="Switch Language" style="padding: 10px 16px; font-size: 0.85rem;">🌐 AR</button>
+                    <button class="btn btn-secondary btn-sm" id="themeToggle" title="Toggle Theme" style="padding: 10px 16px; font-size: 0.85rem;">🌙</button>
+                </div>
+            </header>
+
+            <!-- Archives Section Content -->
+            <section class="card-panel" style="padding: 30px;">
+                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 25px; color: var(--text-main); display: flex; align-items: center; gap: 10px;">
+                    📁 <span data-i18n="archivesListHeader">Saved Monthly Backups</span>
+                </h3>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <table class="custom-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 15px; border-bottom: 2px solid var(--border-glass);" data-i18n="thArchiveName">Month / Year</th>
+                                <th style="padding: 15px; border-bottom: 2px solid var(--border-glass); text-align: center;" data-i18n="thArchiveFormats">Formats Available</th>
+                                <th style="padding: 15px; border-bottom: 2px solid var(--border-glass); text-align: center;" data-i18n="thArchiveActions">Management Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archivesTableBody">
+                            <!-- Injected via script.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="assets/script.js"></script>
+    <script>
+        // Set local translations for archives page
+        if (typeof TRANSLATIONS !== 'undefined') {
+            TRANSLATIONS.en.archivesTitle = "Monthly Archives";
+            TRANSLATIONS.en.archivesSubtitle = "Download past months in Excel/Text layouts or delete obsolete logs from the server.";
+            TRANSLATIONS.en.archivesListHeader = "Saved Monthly Backups";
+            TRANSLATIONS.en.thArchiveName = "Month / Year";
+            TRANSLATIONS.en.thArchiveFormats = "Formats Available";
+            TRANSLATIONS.en.thArchiveActions = "Management Actions";
+            TRANSLATIONS.en.btnExcel = "Excel (CSV)";
+            TRANSLATIONS.en.btnText = "Text (TXT)";
+            TRANSLATIONS.en.btnDelete = "Delete";
+            
+            TRANSLATIONS.ar.archivesTitle = "إدارة الأرشيف الشهري";
+            TRANSLATIONS.ar.archivesSubtitle = "تنزيل تقارير الشهور السابقة بتنسيق إكسيل أو نصي، أو مسح ملفاتها نهائياً.";
+            TRANSLATIONS.ar.archivesListHeader = "ملفات النسخ الاحتياطي المحفوظة";
+            TRANSLATIONS.ar.thArchiveName = "الشهر / السنة";
+            TRANSLATIONS.ar.thArchiveFormats = "التنسيقات المتاحة";
+            TRANSLATIONS.ar.thArchiveActions = "إجراءات التحكم";
+            TRANSLATIONS.ar.btnExcel = "إكسل (CSV)";
+            TRANSLATIONS.ar.btnText = "نص (TXT)";
+            TRANSLATIONS.ar.btnDelete = "حذف نهائياً";
+            
+            // Reapply translation
+            const currentLang = localStorage.getItem('selected_lang') || localStorage.getItem('lang') || 'en';
+            applyLanguage(currentLang);
+        }
+    </script>
+</body>
+</html>

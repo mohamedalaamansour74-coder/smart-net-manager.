@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Net Manager - تسجيل الدخول</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <!-- Firebase App & Firestore Web SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        // Redirect directly to dashboard if already authenticated
+        if (localStorage.getItem('admin_logged_in') === 'true') {
+            window.location.replace('index.html');
+        }
+    </script>
+    <style>
+        /* Immediate fallback styling to prevent blank/black screen rendering */
+        html, body {
+            opacity: 1 !important;
+            visibility: visible !important;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-app, #080c14);
+            color: var(--text-main, #f3f4f6);
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+        }
+
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.18), transparent 60%),
+                        radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.12), transparent 60%);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-card, rgba(19, 25, 38, 0.85));
+            border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+            border-top: 4px solid var(--color-primary, #6366f1);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-card, 0 8px 32px 0 rgba(0, 0, 0, 0.37));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: var(--transition-smooth, all 0.3s ease);
+        }
+
+        .login-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        body.light-mode .login-card {
+            background: var(--bg-card, rgba(255, 255, 255, 0.9));
+        }
+
+        body.light-mode .login-card:hover {
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .login-brand {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-brand-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.5));
+        }
+
+        .login-brand h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main, #f3f4f6);
+            margin: 0;
+        }
+
+        .login-brand p {
+            font-size: 0.85rem;
+            color: var(--text-muted, #9ca3af);
+            margin: 6px 0 0 0;
+        }
+
+        .login-error {
+            background-color: rgba(239, 68, 68, 0.12);
+            border: 1px solid var(--color-danger, #ef4444);
+            color: #ff8e8e;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            text-align: center;
+            display: none;
+        }
+
+        body.light-mode .login-error {
+            background-color: rgba(239, 68, 68, 0.08);
+            color: #b91c1c;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted, #9ca3af);
+            display: block;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+            background: rgba(0, 0, 0, 0.25);
+            color: var(--text-main, #ffffff);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-control {
+            background: rgba(255, 255, 255, 0.8);
+            color: #0f172a;
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary, #6366f1);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            background: var(--color-primary-grad, linear-gradient(135deg, #6366f1 0%, #a855f7 100%));
+            color: #ffffff;
+            box-shadow: var(--shadow-neon, 0 0 15px rgba(99, 102, 241, 0.25));
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 22px rgba(99, 102, 241, 0.4);
+        }
+
+        .login-theme-toggle {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 10;
+        }
+
+        .login-theme-toggle button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+            color: var(--text-main, #ffffff);
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .login-theme-toggle button {
+            background: rgba(0, 0, 0, 0.04);
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body class="loaded">
+    <script>
+        // Enforce theme preference immediately on body parse
+        (function() {
+            const storedTheme = localStorage.getItem('theme') || 'dark';
+            if (storedTheme === 'light') {
+                document.body.classList.add('light-mode');
+            }
+        })();
+    </script>
+
+    <div class="login-theme-toggle">
+        <button id="themeToggle" title="تبديل المظهر">🌙</button>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="login-brand-icon">⚡</div>
+                <h2>SmartNet Manager</h2>
+                <p>لوحة التحكم الإدارية بالباقات</p>
+            </div>
+
+            <div class="login-error" id="loginError">
+                <!-- Error messages displayed here -->
+            </div>
+
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="username">اسم المستخدم</label>
+                    <input type="text" id="username" class="form-control" placeholder="أدخل اسم المستخدم" required autofocus>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="password">كلمة المرور</label>
+                    <input type="password" id="password" class="form-control" placeholder="أدخل كلمة المرور" required>
+                </div>
+
+                <button type="submit" class="login-btn">تسجيل الدخول</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script src="assets/script.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Theme toggle button setup
+            const themeBtn = document.getElementById('themeToggle');
+            const updateThemeIcon = () => {
+                const isLight = document.body.classList.contains('light-mode');
+                if (themeBtn) themeBtn.innerText = isLight ? '☀️' : '🌙';
+            };
+
+            updateThemeIcon();
+
+            if (themeBtn) {
+                themeBtn.addEventListener('click', () => {
+                    const isLight = document.body.classList.toggle('light-mode');
+                    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+                    updateThemeIcon();
+                });
+            }
+
+            // Strict Multi-User Authentication Handler
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('username').value.trim();
+                    const password = document.getElementById('password').value;
+                    const errorEl = document.getElementById('loginError');
+
+                    let systemUsers = [];
+                    try {
+                        systemUsers = JSON.parse(localStorage.getItem('system_users') || '[]');
+                    } catch(err) { systemUsers = []; }
+
+                    // Always ensure master admin exists with password '1111'
+                    let adminUser = systemUsers.find(u => u.username === 'admin');
+                    if (!adminUser) {
+                        adminUser = { id: 'admin', username: 'admin', password: '1111', role: 'master' };
+                        systemUsers.unshift(adminUser);
+                    } else {
+                        adminUser.password = '1111';
+                    }
+                    localStorage.setItem('system_users', JSON.stringify(systemUsers));
+
+                    if (window.db) {
+                        window.db.collection('users').doc('admin').set({ id: 'admin', username: 'admin', password: '1111', role: 'master' }, { merge: true }).catch(err => console.warn('Firestore admin login sync err:', err));
+                    }
+
+                    const matchedUser = systemUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
+                    if (matchedUser) {
+                        const effectiveRole = (matchedUser.username.toLowerCase() === 'admin' || matchedUser.role === 'master' || matchedUser.role === 'admin') ? 'admin' : (matchedUser.role || 'user');
+                        localStorage.setItem('admin_logged_in', 'true');
+                        localStorage.setItem('current_user', JSON.stringify({
+                            id: matchedUser.id,
+                            username: matchedUser.username,
+                            role: effectiveRole
+                        }));
+
+                        // Log successful login activity
+                        let logs = [];
+                        try { logs = JSON.parse(localStorage.getItem('activity_logs') || '[]'); } catch(err) { logs = []; }
+                        logs.unshift({
+                            timestamp: new Date().toISOString(),
+                            username: matchedUser.username,
+                            role: matchedUser.role === 'master' ? 'مدير عام (Master Admin)' : 'مستخدم فرعي (Sub-User)',
+                            device: navigator.userAgent.includes('Windows') ? 'Windows PC' : (navigator.userAgent.includes('Mac') ? 'Mac OS' : 'Mobile/Tablet'),
+                            ip: '127.0.0.1 (Local)',
+                            location: 'القاهرة، مصر',
+                            status: 'تسجيل دخول ناجح ✓'
+                        });
+                        localStorage.setItem('activity_logs', JSON.stringify(logs.slice(0, 100)));
+
+                        window.location.replace('index.html');
+                    } else {
+                        if (errorEl) {
+                            errorEl.style.display = 'block';
+                            errorEl.innerText = '⚠️ خطأ في اسم المستخدم أو كلمة المرور!';
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

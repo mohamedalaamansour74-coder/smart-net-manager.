@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Inline authentication guard
+        if (localStorage.getItem('admin_logged_in') !== 'true') {
+            window.location.replace('login.html');
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Net Manager - الدفعات والحسابات</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script>
+        // Immediately enforce active language settings to prevent browser flicker
+        (function() {
+            const storedLang = localStorage.getItem('selected_lang') || localStorage.getItem('lang') || 'en';
+            document.documentElement.dir = storedLang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.lang = storedLang;
+        })();
+    </script>
+</head>
+<body>
+    <script>
+        // Enforce light/dark mode preference immediately on body parsing
+        const storedTheme = localStorage.getItem('theme') || 'dark';
+        if (storedTheme === 'light') {
+            document.body.classList.add('light-mode');
+        }
+    </script>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">⚡</div>
+                <h2>SmartNet Manager</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item" id="navDashboard">
+                    <span class="nav-icon">📊</span> <span data-i18n="navDashboard">Dashboard</span>
+                </a>
+                <a href="chat.html" class="nav-item" id="navChat">
+                    <span class="nav-icon">💬</span> <span data-i18n="navChat">Booking Chat</span>
+                </a>
+                <a href="reserved-bundles.html" class="nav-item" id="navReserved">
+                    <span class="nav-icon">📦</span> <span data-i18n="navReserved">الباقات المحجوزة</span>
+                </a>
+                <a href="payments.html" class="nav-item active" id="navPayments">
+                    <span class="nav-icon">💳</span> <span data-i18n="navPayments">الدفعات والحسابات</span>
+                </a>
+                <a href="lines.html" class="nav-item" id="navLines">
+                    <span class="nav-icon">📶</span> <span data-i18n="navLines">Lines Directory</span>
+                </a>
+                <a href="search.html" class="nav-item" id="navSearch">
+                    <span class="nav-icon">🔍</span> <span data-i18n="navSearch">Operations & Query</span>
+                </a>
+                <a href="#" class="nav-item" id="navLogout" style="margin-top: auto; border-top: 1px solid var(--border-glass); padding-top: 15px; color: var(--color-danger);">
+                    <span class="nav-icon">🚪</span> <span data-i18n="navLogout">Logout</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <span>Enterprise Edition</span>
+                <span>v1.0</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="page-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button id="mobileMenuToggle" class="btn btn-secondary btn-sm" style="display: none; padding: 10px 14px; font-size: 1.25rem; line-height: 1;" title="Toggle Navigation">☰</button>
+                    <div class="page-title">
+                        <h1>💳 إدارة الدفعات ومتحصلات المشتركين</h1>
+                        <p>تتبع مبالغ subscriptions، الدفعات الجزئية والمتبقي فورياً لجميع العملاء.</p>
+                    </div>
+                </div>
+                <!-- Header Controls -->
+                <div class="header-controls" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-secondary btn-sm" id="btnTogglePendingDrawer" style="padding: 10px 16px; font-size: 0.85rem; font-weight: 700; color: var(--color-primary); border-color: var(--border-glass-focus);">
+                        📋 الحجوزات المعلقة (<span id="poolCount">0</span>)
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="langToggle" title="Switch Language" style="padding: 10px 16px; font-size: 0.85rem;">🌐 AR</button>
+                    <button class="btn btn-secondary btn-sm" id="themeToggle" title="Toggle Theme" style="padding: 10px 16px; font-size: 0.85rem;">🌙</button>
+                </div>
+            </header>
+
+            <!-- Top KPI Cards Grid -->
+            <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+                <!-- KPI 1: Total Collected -->
+                <div class="kpi-card glass-panel accent-green">
+                    <div class="kpi-icon" style="color: var(--color-success);">💵</div>
+                    <div class="kpi-info">
+                        <h3>إجمالي المحصل</h3>
+                        <div class="kpi-value" id="kpiTotalCollected">0 EGP</div>
+                        <div class="kpi-trend up">المبالغ المدفوعة فعلياً</div>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Total Remaining -->
+                <div class="kpi-card glass-panel accent-orange">
+                    <div class="kpi-icon" style="color: var(--color-warning);">⏳</div>
+                    <div class="kpi-info">
+                        <h3>المبالغ المتبقية</h3>
+                        <div class="kpi-value" id="kpiTotalRemaining">0 EGP</div>
+                        <div class="kpi-trend down">مستحقات غير محصلة</div>
+                    </div>
+                </div>
+
+                <!-- KPI 3: Total Bookings Value -->
+                <div class="kpi-card glass-panel accent-purple">
+                    <div class="kpi-icon" style="color: var(--color-primary);">📊</div>
+                    <div class="kpi-info">
+                        <h3>إجمالي الحجوزات</h3>
+                        <div class="kpi-value" id="kpiTotalBookingsValue">0 EGP</div>
+                        <div class="kpi-trend" id="kpiTotalCountSubtext">0 عميل محجوز</div>
+                    </div>
+                </div>
+
+                <!-- KPI 4: Bills & Net Profit (Clickable to open Bills Modal) -->
+                <div class="kpi-card glass-panel accent-green" id="kpiCardBillsProfit" style="cursor: pointer; position: relative;" title="انقر لتعديل فواتير الخطوط والمصاريف الخارجية">
+                    <div class="kpi-icon" style="color: #10b981;">🧾</div>
+                    <div class="kpi-info">
+                        <h3 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span>الفواتير / صافي الربح</span>
+                            <span style="font-size: 0.72rem; background: rgba(99, 102, 241, 0.2); color: #818cf8; padding: 2px 6px; border-radius: 6px; font-weight: 600;">⚙️ تعديل</span>
+                        </h3>
+                        <div class="kpi-value" id="kpiEstimatedProfit" style="font-size: 1.8rem; font-variant-numeric: tabular-nums;">0 EGP</div>
+                        <div class="kpi-trend" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; width: 100%; margin-top: 6px;">
+                            <span>الفواتير: <strong id="kpiTotalBills" style="font-variant-numeric: tabular-nums; color: var(--text-main);">0 EGP</strong></span>
+                            <span id="kpiProfitStatusTag" style="font-weight: 700;">صافي الربح</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Status Filter Bar -->
+            <div class="card-panel" style="margin-bottom: 24px; padding: 20px 24px;">
+                <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                    <!-- Filter Tabs -->
+                    <div class="payment-filter-tabs" id="paymentFilterTabs" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="filter-tab active" data-status="all">الكل (<span id="countFilterAll">0</span>)</button>
+                        <button class="filter-tab" data-status="paid">تم الدفع بالكامل (<span id="countFilterPaid">0</span>)</button>
+                        <button class="filter-tab" data-status="partial">دفع جزئي (<span id="countFilterPartial">0</span>)</button>
+                        <button class="filter-tab" data-status="unpaid">غير مدفوع (<span id="countFilterUnpaid">0</span>)</button>
+                    </div>
+
+                    <!-- Search Input & Manual Payment Button & Package Selling Pricing -->
+                    <div style="display: flex; gap: 12px; align-items: center; flex: 1; justify-content: flex-end; min-width: 280px; flex-wrap: wrap;">
+                        <div style="position: relative; flex: 1; max-width: 340px; min-width: 200px;">
+                            <input type="text" id="paymentsSearchInput" class="form-control" placeholder="🔍 ابحث عن رقم هاتف أو اسم العميل..." style="height: 44px; padding-left: 14px; padding-right: 14px; font-size: 0.92rem;">
+                        </div>
+                        <button id="btnOpenManualPaymentModal" class="btn btn-primary" style="height: 44px; padding: 0 18px; font-weight: 700; white-space: nowrap;">
+                            ➕ إضافة عميل
+                        </button>
+                        <button id="btnOpenSubUserPricingModal" class="btn btn-secondary" style="height: 44px; padding: 0 16px; font-weight: 600; white-space: nowrap;" title="إعداد قائمة أسعار البيع الخاصة بك">
+                            🏷️ أسعار البيع
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Payments Ledger Table -->
+            <div class="card-panel" style="overflow-x: auto; padding: 0; border-radius: 16px;">
+                <table class="data-table" id="paymentsTable" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: rgba(0, 0, 0, 0.25); text-align: right;">
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">الرقم / العميل</th>
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">الباقة / الخدمة</th>
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">السعر الإجمالي</th>
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">المبلغ المدفوع</th>
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">المتبقي</th>
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">حالة الدفع</th>
+                            <th style="padding: 16px 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-align: center;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTbody">
+                        <!-- Loaded dynamically via script.js -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Payment Record Modal -->
+    <div class="modal-overlay" id="editPaymentModal" style="display: none;">
+        <div class="card-panel" style="width: 480px; max-width: 92%; padding: 26px; border-radius: 20px; border: 1px solid var(--border-glass-focus); box-shadow: var(--shadow-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-glass); padding-bottom: 14px;">
+                <div>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);">💳 تسجيل وتعديل دفع العميل</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;" id="editPaymentSubhead">رقم: -</p>
+                </div>
+                <button id="btnClosePaymentModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;">✖</button>
+            </div>
+            
+            <form id="editPaymentForm" style="display: flex; flex-direction: column; gap: 16px;">
+                <input type="hidden" id="editPaymentId">
+                <input type="hidden" id="editPaymentPhone">
+
+                <!-- Client Name / Notes -->
+                <div class="form-group">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">اسم العميل / ملاحظات:</label>
+                    <input type="text" id="editPaymentClientName" class="form-control" placeholder="أدخل اسم العميل (اختياري)..." style="height: 42px;">
+                </div>
+                
+                <div class="form-row">
+                    <!-- Total Package Price -->
+                    <div class="form-group">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">السعر الإجمالي (جنيه):</label>
+                        <input type="number" id="editPaymentTotalPrice" class="form-control" min="0" required style="height: 42px; font-weight: 700;">
+                    </div>
+                    
+                    <!-- Amount Paid -->
+                    <div class="form-group">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">المبلغ المدفوع (جنيه):</label>
+                        <input type="number" id="editPaymentPaidAmount" class="form-control" min="0" required style="height: 42px; font-weight: 700; color: var(--color-success);">
+                    </div>
+                </div>
+
+                <!-- Remaining & Status Dynamic Preview Banner -->
+                <div style="background: rgba(0,0,0,0.25); border: 1px dashed var(--border-glass-focus); padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">المبلغ المتبقي:</span>
+                        <strong id="previewRemainingAmount" style="font-size: 1.15rem; color: var(--text-main); font-variant-numeric: tabular-nums;">0 EGP</strong>
+                    </div>
+                    <div id="previewStatusBadge">
+                        <!-- Badge dynamically rendered -->
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; height: 46px; font-weight: 700;">حفظ وتحديث الدفع 💾</button>
+                    <button type="button" id="btnCancelPaymentModal" class="btn btn-secondary" style="flex: 1; height: 46px; font-weight: 600;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Custom Direct Payment Modal -->
+    <div class="modal-overlay" id="manualPaymentModal" style="display: none;">
+        <div class="card-panel" style="width: 480px; max-width: 92%; padding: 26px; border-radius: 20px; border: 1px solid var(--border-glass-focus); box-shadow: var(--shadow-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-glass); padding-bottom: 14px;">
+                <div>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);">➕ إضافة عميل / دفعة مباشرة</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;">إدخال حجز أو خدمة مباشرة بدون التقيد بخطوط الاتصالات.</p>
+                </div>
+                <button id="btnCloseManualPaymentModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;">✖</button>
+            </div>
+            
+            <form id="manualPaymentForm" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Client Name -->
+                <div class="form-group">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">اسم العميل (مطلوب):</label>
+                    <input type="text" id="manualClientName" class="form-control" placeholder="أدخل اسم العميل..." required style="height: 42px;">
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-group">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">رقم الهاتف (اختياري - للتذكيرات والواتساب):</label>
+                    <input type="text" id="manualClientPhone" class="form-control" placeholder="مثال: 01012345678" style="height: 42px; font-family: monospace;">
+                </div>
+
+                <!-- Service / Package Title -->
+                <div class="form-group">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">الباقة / الخدمة:</label>
+                    <input type="text" id="manualServiceTitle" class="form-control" placeholder="مثال: 30 GB أو خدمة خارجية" value="30 GB" required style="height: 42px;">
+                </div>
+                
+                <div class="form-row">
+                    <!-- Total Amount -->
+                    <div class="form-group">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">السعر الإجمالي (جنيه):</label>
+                        <input type="number" id="manualTotalAmount" class="form-control" min="0" placeholder="0" required style="height: 42px; font-weight: 700;">
+                    </div>
+                    
+                    <!-- Paid Amount -->
+                    <div class="form-group">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">المبلغ المدفوع (جنيه):</label>
+                        <input type="number" id="manualPaidAmount" class="form-control" min="0" placeholder="0" value="0" required style="height: 42px; font-weight: 700; color: var(--color-success);">
+                    </div>
+                </div>
+
+                <!-- Live Calculation Preview -->
+                <div style="background: rgba(0,0,0,0.25); border: 1px dashed var(--border-glass-focus); padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">المبلغ المتبقي:</span>
+                        <strong id="manualPreviewRemaining" style="font-size: 1.15rem; color: var(--text-main); font-variant-numeric: tabular-nums;">0 EGP</strong>
+                    </div>
+                    <div id="manualPreviewStatusBadge">
+                        <span class="payment-badge badge-unpaid">✖ غير مدفوع</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; height: 46px; font-weight: 700;">إضافة الدفعة 💾</button>
+                    <button type="button" id="btnCancelManualPaymentModal" class="btn btn-secondary" style="flex: 1; height: 46px; font-weight: 600;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Package Selling Pricing Modal -->
+    <div class="modal-overlay" id="sellingPricesModal" style="display: none;">
+        <div class="card-panel" style="width: 560px; max-width: 94%; padding: 26px; border-radius: 20px; border: 1px solid var(--border-glass-focus); box-shadow: var(--shadow-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">
+                <div>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);">🏷️ تحديث أسعار بيع الباقات</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;">قم بتحديد أسعار البيع للعملاء لكل باقة لحساب التكاليف والمستحقات بدقة.</p>
+                </div>
+                <button id="btnCloseSellingPricesModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;">✖</button>
+            </div>
+
+            <form id="sellingPricesForm" style="display: flex; flex-direction: column; gap: 14px;">
+                <div id="pricingTiersGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 320px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Dynamically populated via script.js -->
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; height: 46px; font-weight: 700;">حفظ التغييرات 💾</button>
+                    <button type="button" id="btnCancelPricingModal" class="btn btn-secondary" style="flex: 1; height: 46px; font-weight: 600;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Bills & Expenses Calculator Modal -->
+    <div class="modal-overlay" id="billsModal" style="display: none;">
+        <div class="card-panel" style="width: 580px; max-width: 94%; padding: 26px; border-radius: 20px; border: 1px solid var(--border-glass-focus); box-shadow: var(--shadow-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-glass); padding-bottom: 14px;">
+                <div>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);">🧾 حاسبة الفواتير والمصاريف وصافي الربح</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;">أدخل قيم فواتير خطوط الإدارة والمصاريف الخارجية للحصول على صافي الربح الدقيق.</p>
+                </div>
+                <button id="btnCloseBillsModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;">✖</button>
+            </div>
+            
+            <form id="billsModalForm" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Modal Top Metrics Summary Banner -->
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass-focus); padding: 14px 18px; border-radius: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center;">
+                    <div>
+                        <span style="font-size: 0.76rem; color: var(--text-muted); display: block;">إجمالي قيمة الحجوزات</span>
+                        <strong id="modalBookingsTotal" style="color: var(--text-main); font-size: 1.05rem; font-variant-numeric: tabular-nums;">0 EGP</strong>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.76rem; color: var(--text-muted); display: block;">إجمالي الفواتير والمصاريف</span>
+                        <strong id="modalBillsTotal" style="color: var(--color-danger); font-size: 1.05rem; font-variant-numeric: tabular-nums;">0 EGP</strong>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.76rem; color: var(--text-muted); display: block;">صافي الربح المتوقع</span>
+                        <strong id="modalEstimatedProfit" style="color: var(--color-success); font-size: 1.05rem; font-variant-numeric: tabular-nums;">0 EGP</strong>
+                    </div>
+                </div>
+
+                <!-- Admin Lines Bills Inputs Container -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display: block;">📶 فواتير خطوط الإدارة (Cellular Trunks Bills):</label>
+                    <div id="modalLinesBillsContainer" style="max-height: 220px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Injected dynamically via script.js -->
+                    </div>
+                </div>
+
+                <!-- Outside/Miscellaneous Expenses Field -->
+                <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 12px 14px; border-radius: 12px; margin-top: 4px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: var(--color-warning);">📦 مصاريف خارج الخطوط (مصاريف إضافية):</label>
+                    <input type="number" id="inputOutsideExpensesModal" class="form-control" min="0" placeholder="0" value="0" style="height: 42px; font-weight: 700; font-variant-numeric: tabular-nums;">
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; height: 46px; font-weight: 700;">حفظ الفواتير والتغييرات 💾</button>
+                    <button type="button" id="btnCancelBillsModal" class="btn btn-secondary" style="flex: 1; height: 46px; font-weight: 600;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Collapsible Side Drawer for Pending Orders -->
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <aside class="pending-drawer" id="pendingDrawer">
+        <div class="drawer-header">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-main);" data-i18n="pendingPoolTitle">📋 الحجوزات المعلقة</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;" id="drawerStatsSubtext">إجمالي 0 حجز | 0 GB</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnClosePendingDrawer" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;" title="Close">✖</button>
+        </div>
+        
+        <div class="drawer-body pool-list" id="poolList" style="padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-grow: 1;">
+            <!-- Loaded dynamically via script.js -->
+        </div>
+    </aside>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>
