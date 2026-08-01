@@ -4028,7 +4028,69 @@ function getCustomerName(phone) {
     if (!phone) return '';
     const cleanPhone = String(phone).trim();
     const dbObj = getCustomersDb();
-    return dbObj[cleanPhone] || '';
+    if (dbObj[cleanPhone]) return dbObj[cleanPhone];
+
+    // Fallback: search in payments records
+    const records = typeof getPaymentsRecords === 'function' ? getPaymentsRecords() : {};
+    if (records[cleanPhone] && records[cleanPhone].client_name) {
+        return records[cleanPhone].client_name;
+    }
+    return '';
+}
+
+function getCustomerPhoneByName(name) {
+    if (!name) return '';
+    const cleanName = String(name).trim().toLowerCase();
+    if (!cleanName) return '';
+
+    const dbObj = getCustomersDb();
+    for (let phone in dbObj) {
+        if (dbObj[phone] && String(dbObj[phone]).trim().toLowerCase() === cleanName) {
+            return phone;
+        }
+    }
+
+    // Search in payments records
+    const records = typeof getPaymentsRecords === 'function' ? getPaymentsRecords() : {};
+    for (let key in records) {
+        const r = records[key];
+        if (r && r.client_name && String(r.client_name).trim().toLowerCase() === cleanName && r.phone) {
+            return r.phone;
+        }
+    }
+
+    // Search in archived months history
+    const archives = typeof getArchivedMonths === 'function' ? getArchivedMonths() : [];
+    for (let arch of archives) {
+        if (arch.bookings) {
+            for (let b of arch.bookings) {
+                if (b.client_name && String(b.client_name).trim().toLowerCase() === cleanName && (b.customer_number || b.phone)) {
+                    return b.customer_number || b.phone;
+                }
+            }
+        }
+    }
+    return '';
+}
+
+function populateCustomerDatalist() {
+    const datalist = document.getElementById('existingCustomersList');
+    if (!datalist) return;
+
+    const namesSet = new Set();
+    const dbObj = getCustomersDb();
+    for (let phone in dbObj) {
+        if (dbObj[phone]) namesSet.add(String(dbObj[phone]).trim());
+    }
+
+    const records = typeof getPaymentsRecords === 'function' ? getPaymentsRecords() : {};
+    for (let key in records) {
+        if (records[key] && records[key].client_name) {
+            namesSet.add(String(records[key].client_name).trim());
+        }
+    }
+
+    datalist.innerHTML = Array.from(namesSet).map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
 }
 
 function getAdminBillsData() {
@@ -4229,6 +4291,8 @@ function renderPaymentsPage() {
     const tbody = document.getElementById('paymentsTbody');
     if (!tbody) return;
 
+    populateCustomerDatalist();
+
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('open_bills') === 'true') {
         setTimeout(() => {
@@ -4425,35 +4489,16 @@ function buildWhatsAppReminderUrl(phone, clientName, packageName, totalPrice, pa
                 <td style="padding: 16px 20px;">
                     ${badgeHtml}
                 </td>
-                <td style="padding: 16px 20px; text-align: center; white-space: nowrap; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                <td style="padding: 16px 20px; text-align: center; white-space: nowrap; display: flex; gap: 8px; justify-content: center; align-items: center;">
                     ${payFullBtnHtml}
-                    <button type="button" class="btn btn-secondary btn-sm btn-open-invoice"
-                        data-id="${item.id}"
-                        data-phone="${item.phone}"
-                        data-client-name="${item.client_name || ''}"
-                        data-package="${item.package_gigas}"
-                        data-total-price="${item.total_price}"
-                        data-paid-amount="${item.paid_amount}"
-                        style="padding: 6px 12px; font-size: 0.82rem; font-weight: 700; color: #818cf8; border-color: rgba(129, 140, 248, 0.4);"
-                        title="عرض الفاتورة والـ QR Code">
-                        🧾 الفاتورة
-                    </button>
                     <button type="button" class="btn btn-secondary btn-sm btn-edit-payment" 
                         data-id="${item.id}"
                         data-phone="${item.phone}"
                         data-client-name="${item.client_name || ''}"
                         data-total-price="${item.total_price}"
                         data-paid-amount="${item.paid_amount}"
-                        style="padding: 6px 12px; font-size: 0.82rem; font-weight: 600;">
+                        style="padding: 6px 14px; font-size: 0.82rem; font-weight: 600;">
                         💳 تعديل
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-sm btn-renew-customer" 
-                        data-id="${item.id}"
-                        data-phone="${item.phone}"
-                        data-client-name="${item.client_name || ''}"
-                        style="padding: 6px 12px; font-size: 0.82rem; font-weight: 700; color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);"
-                        title="تجديد الاشتراك لشهر جديد بنقرة واحدة">
-                        ⚡ تجديد
                     </button>
                     <button type="button" class="btn btn-danger btn-sm delete-customer-btn" 
                         data-id="${item.id}"
@@ -4936,6 +4981,40 @@ function updateManualPaymentPreview() {
 document.addEventListener('input', (e) => {
     if (e.target && (e.target.id === 'manualTotalAmount' || e.target.id === 'manualPaidAmount')) {
         updateManualPaymentPreview();
+    }
+
+    // Dynamic Name -> Phone Lookup (Audio Feature: Typing name auto-fills stored phone number)
+    if (e.target && (e.target.id === 'manualClientName' || e.target.id === 'editPaymentClientName')) {
+        const typedName = e.target.value.trim();
+        if (typedName.length >= 2) {
+            const foundPhone = getCustomerPhoneByName(typedName);
+            if (foundPhone) {
+                if (e.target.id === 'manualClientName') {
+                    const phoneEl = document.getElementById('manualClientPhone');
+                    if (phoneEl && !phoneEl.value.trim()) phoneEl.value = foundPhone;
+                } else if (e.target.id === 'editPaymentClientName') {
+                    const phoneEl = document.getElementById('editPaymentPhone');
+                    if (phoneEl && !phoneEl.value.trim()) phoneEl.value = foundPhone;
+                }
+            }
+        }
+    }
+
+    // Dynamic Phone -> Name Lookup (Typing phone auto-fills stored customer name)
+    if (e.target && (e.target.id === 'manualClientPhone' || e.target.id === 'editPaymentPhone')) {
+        const typedPhone = e.target.value.trim();
+        if (typedPhone.length >= 8) {
+            const foundName = getCustomerName(typedPhone);
+            if (foundName) {
+                if (e.target.id === 'manualClientPhone') {
+                    const nameEl = document.getElementById('manualClientName');
+                    if (nameEl && !nameEl.value.trim()) nameEl.value = foundName;
+                } else if (e.target.id === 'editPaymentPhone') {
+                    const nameEl = document.getElementById('editPaymentClientName');
+                    if (nameEl && !nameEl.value.trim()) nameEl.value = foundName;
+                }
+            }
+        }
     }
 });
 

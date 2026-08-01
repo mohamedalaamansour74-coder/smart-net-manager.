@@ -133,28 +133,6 @@
                 </div>
             </div>
 
-            <!-- Payments Interactive Analytics & Charts Panel -->
-            <div class="card-panel" style="margin-bottom: 24px; padding: 22px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">
-                    <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
-                        <span>📊</span> <span>تحليلات ومؤشرات الدفع والأرباح</span>
-                    </h2>
-                    <span style="font-size: 0.8rem; color: var(--text-muted);">تحديث لحظي</span>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-                    <div style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: 14px; border: 1px solid var(--border-glass); height: 250px; display: flex; flex-direction: column;">
-                        <h4 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 10px; color: var(--text-muted); text-align: center;">مخطط حالة السداد والتحصيل</h4>
-                        <div style="flex: 1; position: relative;">
-                            <canvas id="chartPaymentStatus"></canvas>
-                        </div>
-                    </div>
-                    <div style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: 14px; border: 1px solid var(--border-glass); height: 250px; display: flex; flex-direction: column;">
-                        <h4 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 10px; color: var(--text-muted); text-align: center;">الحجوزات vs المحصل vs الفواتير والصافي</h4>
-                        <div style="flex: 1; position: relative;">
-                            <canvas id="chartRevenueProfit"></canvas>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Search & Status Filter Bar -->
@@ -226,7 +204,7 @@
                 <!-- Client Name / Notes -->
                 <div class="form-group">
                     <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">اسم العميل / ملاحظات:</label>
-                    <input type="text" id="editPaymentClientName" class="form-control" placeholder="أدخل اسم العميل (اختياري)..." style="height: 42px;">
+                    <input type="text" id="editPaymentClientName" list="existingCustomersList" class="form-control" placeholder="أدخل اسم العميل (اختياري)..." style="height: 42px;">
                 </div>
                 
                 <div class="form-row">
@@ -277,7 +255,8 @@
                 <!-- Client Name -->
                 <div class="form-group">
                     <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">اسم العميل (مطلوب):</label>
-                    <input type="text" id="manualClientName" class="form-control" placeholder="أدخل اسم العميل..." required style="height: 42px;">
+                    <input type="text" id="manualClientName" list="existingCustomersList" class="form-control" placeholder="أدخل اسم العميل..." required style="height: 42px;">
+                    <datalist id="existingCustomersList"></datalist>
                 </div>
 
                 <!-- Phone Number -->
@@ -399,92 +378,6 @@
         </div>
     </div>
 
-    <!-- Printable Thermal Invoice & QR Code Modal -->
-    <div class="modal-overlay" id="invoiceModal" style="display: none;">
-        <div class="card-panel" style="width: 500px; max-width: 94%; padding: 24px; border-radius: 20px; border: 1px solid var(--border-glass-focus); box-shadow: var(--shadow-card); background: var(--bg-card);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px; margin-bottom: 16px;">
-                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text-main);">🧾 فاتورة اشتراك وإيصال سداد</h3>
-                <button id="btnCloseInvoiceModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;">✖</button>
-            </div>
-
-            <!-- Invoice Card Layout for Thermal Print -->
-            <div id="printableInvoiceCard" style="background: #ffffff; color: #000000; padding: 20px; border-radius: 12px; font-family: sans-serif; text-align: center; border: 1px solid #ccc;">
-                <div style="font-size: 1.3rem; font-weight: 900; color: #1e1b4b; margin-bottom: 4px;">⚡ SmartNet Manager</div>
-                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">إيصال سداد الباقة الإلكتروني</div>
-                <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 10px 0;">
-
-                <div style="text-align: right; font-size: 0.88rem; line-height: 1.8; color: #1e293b;">
-                    <div><strong>العميل:</strong> <span id="invClientName">-</span></div>
-                    <div><strong>رقم الهاتف:</strong> <span id="invClientPhone" style="font-family: monospace; font-weight: 700;">-</span></div>
-                    <div><strong>الباقة:</strong> <span id="invPackageGigas">-</span></div>
-                    <div><strong>تاريخ الإيصال:</strong> <span id="invDate">-</span></div>
-                </div>
-
-                <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 12px 0;">
-
-                <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 6px;">
-                    <span>سعر الباقة الإجمالي:</span>
-                    <strong id="invTotalPrice">0 EGP</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 6px; color: #16a34a;">
-                    <span>المبلغ المدفوع:</span>
-                    <strong id="invPaidAmount">0 EGP</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 1rem; margin-bottom: 12px; color: #dc2626;">
-                    <span>المبلغ المتبقي:</span>
-                    <strong id="invRemainingAmount">0 EGP</strong>
-                </div>
-
-                <!-- QR Code Box -->
-                <div style="margin-top: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #f8fafc; padding: 12px; border-radius: 10px;">
-                    <div id="qrcodeCanvas"></div>
-                    <span style="font-size: 0.72rem; color: #64748b;">مسح سريع للدفع InstaPay / فودافون كاش</span>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 12px; margin-top: 18px;">
-                <button type="button" id="btnPrintInvoice" class="btn btn-primary" style="flex: 1; height: 44px; font-weight: 700;">🖨️ طباعة الفاتورة الحرارية</button>
-                <button type="button" id="btnCloseInvoiceModal2" class="btn btn-secondary" style="flex: 1; height: 44px; font-weight: 600;">إغلاق</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bulk WhatsApp Reminder Dispatcher Modal -->
-    <div class="modal-overlay" id="bulkWhatsappModal" style="display: none;">
-        <div class="card-panel" style="width: 600px; max-width: 94%; padding: 24px; border-radius: 20px; border: 1px solid var(--border-glass-focus); box-shadow: var(--shadow-card);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px; margin-bottom: 16px;">
-                <div>
-                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);">📲 مركز التذكير الجماعي عبر الواتساب</h3>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;">إرسال رسائل تذكير مباشرة للعملاء غير المسددين بنقرة واحدة لكل عميل.</p>
-                </div>
-                <button id="btnCloseBulkWhatsappModal" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;">✖</button>
-            </div>
-
-            <div id="bulkWhatsappContainer" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
-                <!-- Injected dynamically via script.js -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Collapsible Side Drawer for Pending Orders -->
-    <div class="drawer-backdrop" id="drawerBackdrop"></div>
-    <aside class="pending-drawer" id="pendingDrawer">
-        <div class="drawer-header">
-            <div>
-                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-main);" data-i18n="pendingPoolTitle">📋 الحجوزات المعلقة</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 3px 0 0 0;" id="drawerStatsSubtext">إجمالي 0 حجز | 0 GB</p>
-            </div>
-            <button class="btn btn-secondary btn-sm" id="btnClosePendingDrawer" style="padding: 6px 12px; font-size: 1.1rem; border-radius: 8px;" title="Close">✖</button>
-        </div>
-        
-        <div class="drawer-body pool-list" id="poolList" style="padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-grow: 1;">
-            <!-- Loaded dynamically via script.js -->
-        </div>
-    </aside>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="assets/script.js"></script>
-    <script src="assets/charts.js"></script>
 </body>
 </html>
